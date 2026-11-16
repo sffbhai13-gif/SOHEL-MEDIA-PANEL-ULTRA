@@ -99,7 +99,11 @@
             <p class="muted">UPI भुगतान के बाद ट्रांज़ैक्शन रेफरेंस डालें। सत्यापन के बाद एडमिन बैलेंस जोड़ेगा।</p>
             
             <!-- QR Code यहाँ दिखाई देगा -->
-            <img src="./GooglePay_QR.png" alt="QR Code" style="max-width: 100%;">
+            <div style="text-align: center; margin: 15px 0;">
+              <img src="/GooglePay_QR.png" alt="QR Code" style="max-width: 220px; border-radius: 12px;">
+            </div>
+
+            <form id="deposit-form">
               <label>राशि (₹)<input type="number" name="amount" min="100" max="100000" required></label>
               <label>UPI transaction reference<input name="reference" required maxlength="100"></label>
               <button class="primary">Submit request</button>
@@ -149,10 +153,5 @@
   </div>
   <script src="/app.js" defer></script>
   <script src="//code.tidio.co/dpjzaxrfxdusijy1q7mtcktwzrviwqa5.js" async></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      new QRCode(document.getElementById("qrcode"), "upi://pay?pa=gamerbrom76@okhdfcbank&pn=Sohel");
-    });
-  </script>
 </body>
 </html>

@@ -4,6 +4,7 @@ const {initDb,query,pool}=require('./src/db');
 const {requireAuth,requireAdmin,signToken}=require('./src/auth');
 const provider=require('./src/provider');
 const app=express(), PORT=process.env.PORT||3000;
+app.set('trust proxy', true);
 app.use(helmet({contentSecurityPolicy:false})); app.use(express.json({limit:'200kb'})); app.use(express.static(path.join(__dirname,'public')));
 app.use('/api/auth',rateLimit({windowMs:900000,max:30}));
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);

@@ -1,63 +1,35 @@
-// LuvSMM API v2 adapter
-// Reads credentials only from server environment.
+const TOPSMM_URL = process.env.TOPSMM_API_URL || 'https://topsmm.in/api/v2';
+const LUVSMM_URL = process.env.LUVSMM_API_URL || 'https://luvsmm.com/api/v2';
 
-const API_URL = process.env.LUVSMM_API_URL || 'https://luvsmm.com/api/v2';
-
-async function callLuvSmm(params) {
-    const key = process.env.LUVSMM_API_KEY;
-
-    if (!key) {
-        throw new Error('LuvSMM API key not found in environment.');
-    }
-
-    const payload = new URLSearchParams({
-        key: key,
-        ...params
+async function callApi(apiUrl, apiKey, params) {
+    if (!apiKey) throw new Error('API key not configured for provider.');
+    const payload = new URLSearchParams({ key: apiKey, ...params });
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: payload.toString()
     });
-
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-            },
-            body: payload.toString(),
-            signal: AbortSignal.timeout(20000)
-        });
-
-        const rawText = await response.text();
-        let data;
-
-        try {
-            data = JSON.parse(rawText);
-        } catch {
-            throw new Error('Invalid JSON response from LuvSMM.');
-        }
-
-        if (data && data.error) {
-            throw new Error('LuvSMM Error: ' + data.error);
-        }
-
-        return data;
-    } catch (err) {
-        throw new Error('LuvSMM connection error: ' + err.message);
-    }
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    return data;
 }
 
 module.exports = {
-    getServices: async () => await callLuvSmm({ action: 'services' }),
-    getBalance: async () => await callLuvSmm({ action: 'balance' }),
-    createOrder: async (serviceId, link, quantity) => await callLuvSmm({
-        action: 'add',
-        service: serviceId,
-        link: link,
-        quantity: quantity
-    }),
-    checkOrderStatus: async (orderId) => await callLuvSmm({
-        action: 'status',
-        order: orderId
-    })
+    submitOrder: async (provider, serviceId, link, quantity) => {
+        const isLuv = provider && provider.toLowerCase().includes('luv');
+        const url = isLuv ? LUVSMM_URL : TOPSMM_URL;
+        const key = isLuv ? process.env.LUVSMM_API_KEY : process.env.TOPSMM_API_KEY;
+        
+        const payload = isLuv 
+            ? { action: 'add', service: serviceId, link, quantity }
+            : { action: 'add', service: serviceId, link, quantity }; // Adjust if TopSMM needs different keys
+            
+        return await callApi(url, key, payload);
+    },
+    getStatus: async (provider, orderId) => {
+        const isLuv = provider && provider.toLowerCase().includes('luv');
+        const url = isLuv ? LUVSMM_URL : TOPSMM_URL;
+        const key = isLuv ? process.env.LUVSMM_API_KEY : process.env.TOPSMM_API_KEY;
+        return await callApi(url, key, { action: 'status', order: orderId });
+    }
 };
-

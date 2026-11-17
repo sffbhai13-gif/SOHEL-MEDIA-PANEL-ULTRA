@@ -3,7 +3,7 @@
 
 const API_URL = {
   topSmm: process.env.TOPSMM_API_URL || 'https://topsmm.in/api/v2'
-}.trim();
+};
 
 /**
  * TopSmm API adapter
@@ -94,4 +94,3 @@ module.exports = {
   subSmmOrder,
   subSmmExternal_service_id
 };
-

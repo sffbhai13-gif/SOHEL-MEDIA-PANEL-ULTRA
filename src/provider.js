@@ -1,15 +1,19 @@
-// TopSMM API v2 adapter
+// TopSmm API v2 adapter
 // API credentials only from server environment.
 
-const API_URL = (
-  process.env.TOPSMM_API_URL || 'https://topsmm.in/api/v2'
-).trim();
+const API_URL = {
+  topSmm: process.env.TOPSMM_API_URL || 'https://topsmm.in/api/v2'
+}.trim();
 
+/**
+ * TopSmm API adapter
+ * API credentials only from server environment.
+ */
 async function callTopSmm(params) {
   const key = process.env.TOPSMM_API_KEY;
 
   if (!key) {
-    throw new Error('TopSMM API key server पर सेट नहीं है।');
+    throw new Error('TopSmm API key server पर सेट नहीं है।');
   }
 
   const body = new URLSearchParams({
@@ -20,7 +24,7 @@ async function callTopSmm(params) {
   let response;
 
   try {
-    response = await fetch(API_URL, {
+    response = await fetch(API_URL.topSmm, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -30,11 +34,8 @@ async function callTopSmm(params) {
       body,
       signal: AbortSignal.timeout(20000)
     });
-      body,
-      signal: AbortSignal.timeout(20000)
-    });
   } catch (err) {
-    throw new Error('TopSMM connection error: ' + err.message);
+    throw new Error('TopSmm connection error: ' + err.message);
   }
 
   const raw = await response.text();
@@ -53,18 +54,19 @@ async function callTopSmm(params) {
       raw.slice(0, 400) ||
       'Provider ने कोई विवरण नहीं दिया।';
 
-    throw new Error(  
-      'TopSMM HTTP ' + response.status + ': ' +  
-      String(message).replaceAll(key, '[HIDDEN]')  
+    throw new Error(
+      'TopSmm HTTP ' + response.status + ' • ' +
+      String(message).replaceAll(key, '[HIDDEN]')
     );
   }
 
-  if (!data) {
-    throw new Error('TopSMM ने valid JSON response नहीं दिया।');
+  if (data?.error) {
+    throw new Error('TopSmm HTTP गलत valid JSON response नहीं दिया।');
   }
 
   if (data.error) {
     throw new Error(
+      'TopSmm error: ' +
       String(data.error).replaceAll(key, '[HIDDEN]')
     );
   }
@@ -72,59 +74,24 @@ async function callTopSmm(params) {
   return data;
 }
 
-async function submitOrder(order, service) {
-  if (service.provider !== 'topsmm') {
-    return {
-      accepted: true,
-      provider: 'manual',
-      externalId: null
-    };
-  }
-
-  if (!service.external_service_id) {
-    throw new Error('TopSMM Service ID सेट नहीं है।');
-  }
-
-  const data = await callTopSmm({
-    action: 'add',
-    service: String(service.external_service_id),
-    link: order.link,
-    quantity: String(order.quantity)
-  });
-
-  if (!data.order) {
-    throw new Error('TopSmm ने External Order ID नहीं लौटाई।');
-  }
-
-  return {
-    accepted: true,
-    provider: 'topsmm',
-    externalId: String(data.order)
-  };
-}
-
-async function getOrderStatus(externalId) {
+async function subSmmOrder(order, service) {
   return callTopSmm({
-    action: 'status',
-    order: String(externalId)
+    action: 'add',
+    service: service.providerId,
+    link: order.link,
+    quantity: order.quantity
   });
 }
 
-async function getServices() {
+async function subSmmExternal_service_id(id) {
   return callTopSmm({
     action: 'services'
   });
 }
 
-async function getBalance() {
-  return callTopSmm({
-    action: 'balance'
-  });
-}
-
 module.exports = {
-  submitOrder,
-  getOrderStatus,
-  getServices,
-  getBalance
+  callTopSmm,
+  subSmmOrder,
+  subSmmExternal_service_id
 };
+

@@ -87,10 +87,11 @@ async function subSmmExternal_service_id(id) {
   return callTopSmm({
     action: 'services'
   });
-}
+
 
 module.exports = {
   callTopSmm,
   subSmmOrder,
-  subSmmExternal_service_id
+  subSmmExternal_service_id,
+  submitOrder: subSmmOrder
 };

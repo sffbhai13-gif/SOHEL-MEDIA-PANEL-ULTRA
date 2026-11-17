@@ -1,97 +1,63 @@
-// TopSmm API v2 adapter
-// API credentials only from server environment.
+// LuvSMM API v2 adapter
+// Reads credentials only from server environment.
 
-const API_URL = {
-  topSmm: process.env.TOPSMM_API_URL || 'https://topsmm.in/api/v2'
-};
+const API_URL = process.env.LUVSMM_API_URL || 'https://luvsmm.com/api/v2';
 
-/**
- * TopSmm API adapter
- * API credentials only from server environment.
- */
-async function callTopSmm(params) {
-  const key = process.env.TOPSMM_API_KEY;
+async function callLuvSmm(params) {
+    const key = process.env.LUVSMM_API_KEY;
 
-  if (!key) {
-    throw new Error('TopSmm API key server पर सेट नहीं है।');
-  }
+    if (!key) {
+        throw new Error('LuvSMM API key not found in environment.');
+    }
 
-  const body = new URLSearchParams({
-    key,
-    ...params
-  });
-
-  let response;
-
-  try {
-    response = await fetch(API_URL.topSmm, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
-      },
-      body,
-      signal: AbortSignal.timeout(20000)
+    const payload = new URLSearchParams({
+        key: key,
+        ...params
     });
-  } catch (err) {
-    throw new Error('TopSmm connection error: ' + err.message);
-  }
 
-  const raw = await response.text();
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+            },
+            body: payload.toString(),
+            signal: AbortSignal.timeout(20000)
+        });
 
-  let data;
+        const rawText = await response.text();
+        let data;
 
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    data = null;
-  }
+        try {
+            data = JSON.parse(rawText);
+        } catch {
+            throw new Error('Invalid JSON response from LuvSMM.');
+        }
 
-  if (!response.ok) {
-    const message =
-      data?.error ||
-      raw.slice(0, 400) ||
-      'Provider ने कोई विवरण नहीं दिया।';
+        if (data && data.error) {
+            throw new Error('LuvSMM Error: ' + data.error);
+        }
 
-    throw new Error(
-      'TopSmm HTTP ' + response.status + ' • ' +
-      String(message).replaceAll(key, '[HIDDEN]')
-    );
-  }
-
-  if (data?.error) {
-    throw new Error('TopSmm HTTP गलत valid JSON response नहीं दिया।');
-  }
-
-  if (data.error) {
-    throw new Error(
-      'TopSmm error: ' +
-      String(data.error).replaceAll(key, '[HIDDEN]')
-    );
-  }
-
-  return data;
-}
-
-async function subSmmOrder(order, service) {
-  return callTopSmm({
-    action: 'add',
-    service: service.providerId,
-    link: order.link,
-    quantity: order.quantity
-  });
-}
-
-async function subSmmExternal_service_id(id) {
-  return callTopSmm({
-    action: 'services'
-  });
+        return data;
+    } catch (err) {
+        throw new Error('LuvSMM connection error: ' + err.message);
+    }
 }
 
 module.exports = {
-  callTopSmm,
-  subSmmOrder,
-  subSmmExternal_service_id,
-  submitOrder: subSmmOrder
+    getServices: async () => await callLuvSmm({ action: 'services' }),
+    getBalance: async () => await callLuvSmm({ action: 'balance' }),
+    createOrder: async (serviceId, link, quantity) => await callLuvSmm({
+        action: 'add',
+        service: serviceId,
+        link: link,
+        quantity: quantity
+    }),
+    checkOrderStatus: async (orderId) => await callLuvSmm({
+        action: 'status',
+        order: orderId
+    })
 };
+

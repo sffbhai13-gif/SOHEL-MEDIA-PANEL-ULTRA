@@ -1,16 +1,15 @@
-
-// JustAnotherPanel (JAP) API v2 adapter
+// TopSMM API v2 adapter
 // API credentials only from server environment.
 
 const API_URL = (
-  process.env.JAP_API_URL || 'https://justanotherpanel.com/api/v2'
+  process.env.TOPSMM_API_URL || 'https://topsmm.in/api/v2'
 ).trim();
 
-async function callJap(params) {
-  const key = process.env.JAP_API_KEY;
+async function callTopSmm(params) {
+  const key = process.env.TOPSMM_API_KEY;
 
   if (!key) {
-    throw new Error('JAP API key server पर सेट नहीं है।');
+    throw new Error('TopSMM API key server पर सेट नहीं है।');
   }
 
   const body = new URLSearchParams({
@@ -31,7 +30,7 @@ async function callJap(params) {
       signal: AbortSignal.timeout(20000)
     });
   } catch (err) {
-    throw new Error('JAP connection error: ' + err.message);
+    throw new Error('TopSMM connection error: ' + err.message);
   }
 
   const raw = await response.text();
@@ -51,13 +50,13 @@ async function callJap(params) {
       'Provider ने कोई विवरण नहीं दिया।';
 
     throw new Error(  
-      'JAP HTTP ' + response.status + ': ' +  
+      'TopSMM HTTP ' + response.status + ': ' +  
       String(message).replaceAll(key, '[HIDDEN]')  
     );
   }
 
   if (!data) {
-    throw new Error('JAP ने valid JSON response नहीं दिया।');
+    throw new Error('TopSMM ने valid JSON response नहीं दिया।');
   }
 
   if (data.error) {
@@ -70,7 +69,7 @@ async function callJap(params) {
 }
 
 async function submitOrder(order, service) {
-  if (service.provider !== 'jap') {
+  if (service.provider !== 'topsmm') {
     return {
       accepted: true,
       provider: 'manual',
@@ -79,10 +78,10 @@ async function submitOrder(order, service) {
   }
 
   if (!service.external_service_id) {
-    throw new Error('JAP Service ID सेट नहीं है।');
+    throw new Error('TopSMM Service ID सेट नहीं है।');
   }
 
-  const data = await callJap({
+  const data = await callTopSmm({
     action: 'add',
     service: String(service.external_service_id),
     link: order.link,
@@ -90,31 +89,31 @@ async function submitOrder(order, service) {
   });
 
   if (!data.order) {
-    throw new Error('JAP ने External Order ID नहीं लौटाई।');
+    throw new Error('TopSmm ने External Order ID नहीं लौटाई।');
   }
 
   return {
     accepted: true,
-    provider: 'jap',
+    provider: 'topsmm',
     externalId: String(data.order)
   };
 }
 
 async function getOrderStatus(externalId) {
-  return callJap({
+  return callTopSmm({
     action: 'status',
     order: String(externalId)
   });
 }
 
 async function getServices() {
-  return callJap({
+  return callTopSmm({
     action: 'services'
   });
 }
 
 async function getBalance() {
-  return callJap({
+  return callTopSmm({
     action: 'balance'
   });
 }
